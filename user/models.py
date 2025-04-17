@@ -12,8 +12,11 @@ from .managers import CustomUserManager
 class CustomUser(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     azure_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+
     first_name = models.CharField(max_length=255, blank=True, null=True)
     last_name = models.CharField(max_length=255, blank=True, null=True)
+    full_name = models.CharField(max_length=255, blank=True, null=True)
+
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=255)
     role = models.ForeignKey(Role, on_delete=models.DO_NOTHING, null=True, blank=True)
@@ -33,6 +36,11 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = CustomUserManager()
+
+    def save(self, *args, **kwargs):
+        if self.first_name or self.last_name:
+            self.full_name = f"{self.first_name or ''} {self.last_name or ''}".strip()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.email
