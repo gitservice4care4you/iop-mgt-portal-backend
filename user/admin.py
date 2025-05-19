@@ -12,6 +12,7 @@ class UserAdmin(admin.ModelAdmin):
         "first_name",
         "last_name",
         "role",
+        "country",
         "is_active",
         "is_staff",
     )

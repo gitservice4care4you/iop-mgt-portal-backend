@@ -12,8 +12,9 @@ class UserFilter(django_filters.FilterSet):
     is_active = django_filters.BooleanFilter(lookup_expr="exact")
     is_staff = django_filters.BooleanFilter(lookup_expr="exact")
     role = django_filters.CharFilter(field_name="role__name", lookup_expr="icontains")
-    country = django_filters.NumberFilter(lookup_expr="exact")
-    page_size = django_filters.NumberFilter(lookup_expr="exact")
+    country = django_filters.CharFilter(
+        field_name="country__name", lookup_expr="icontains"
+    )
 
     class Meta:
         model = CustomUser

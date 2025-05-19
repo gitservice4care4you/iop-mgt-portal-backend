@@ -3,6 +3,13 @@ from city.models import City
 
 
 class CitySerializer(serializers.ModelSerializer):
+
     class Meta:
         model = City
-        fields = "__all__"
+        fields = [
+            "id",
+            "name",
+            "country",
+            "created_at",
+            "updated_at",
+        ]

@@ -55,8 +55,8 @@ urlpatterns = [
             [
                 path("auth/", include("authentication.urls")),
                 path("", include("user.urls")),
-                # path("api/v1/country/", include("country.urls")),
-                # path("api/v1/city/", include("city.urls")),
+                path("", include("country.urls")),
+                path("", include("city.urls")),
                 # path("api/v1/geo-details/", include("geo_details.urls")),
                 # path("api/v1/permission/", include("permission.urls")),
                 # path("api/v1/role/", include("role.urls")),
@@ -90,4 +90,5 @@ urlpatterns = [
             ]
         ),
     ),
+    path("silk/", include("silk.urls", namespace="silk")),
 ]

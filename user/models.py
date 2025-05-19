@@ -18,7 +18,7 @@ class CustomUser(AbstractUser):
     full_name = models.CharField(max_length=255, blank=True, null=True)
 
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=255)
+    password = models.CharField(max_length=255, blank=True, null=True)
     role = models.ForeignKey(Role, on_delete=models.DO_NOTHING, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -28,7 +28,16 @@ class CustomUser(AbstractUser):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    groups = models.ManyToManyField(Group, related_name="custom_users")
+    groups = models.ManyToManyField(Group, related_name="custom_users", blank=True)
+    # Add ManyToMany relationship with Django's Permission model
+    permissions = models.ManyToManyField(
+        "auth.Permission",
+        verbose_name="user permissions",
+        blank=True,
+        related_name="custom_user_set",
+        help_text="Specific permissions for this user.",
+    )
+    photo = models.ImageField(upload_to="photos/", null=True, blank=True)
 
     username = None
 

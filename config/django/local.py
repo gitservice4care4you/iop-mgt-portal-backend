@@ -6,6 +6,7 @@ env.read_env(os.path.join(BASE_DIR, ".env"))
 
 DEBUG = True
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["*"])
 
 # Direct PostgreSQL configuration without env variables
 DATABASES = {

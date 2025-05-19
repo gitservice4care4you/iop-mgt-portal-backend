@@ -3,11 +3,16 @@ from rest_framework import viewsets
 from role.enums import RoleEnum
 from user.filters import UserFilter
 from user.models import CustomUser
+from django.db.models import F, Value, CharField
+from django.db.models.functions import Coalesce
+from user.paginations import CustomPagination
 from user.serializers import (
     UserActivateSerializer,
+    UserCreateSerializer,
     UserSerializer,
     PermissionSerializer,
     GroupSerializer,
+    UserUpdateSerializer,
 )
 from django.contrib.auth.models import Permission, Group
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -19,12 +24,15 @@ from rest_framework.pagination import PageNumberPagination
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
-from user.services import (
+from user.utils import (
     get_paginated_users,
     is_super_admin,
     permission_denied_response,
 )
 from .swagger import list_doc
+
+
+# Custom pagination class
 
 
 # Create your views here.
@@ -62,8 +70,9 @@ class UserViewSet(viewsets.ModelViewSet):
         - email: Order by email
         - is_active: Order by active status
         - is_staff: Order by staff status
-        - role: Order by role
-        - country: Order by country
+        - role: Order by role name
+        - country: Order by country name
+        - groups: Order by group name
         - created_at: Order by creation date
 
         Add '-' prefix for descending order, e.g. '-created_at'
@@ -72,8 +81,9 @@ class UserViewSet(viewsets.ModelViewSet):
         - Searches across fullname and email fields
 
         Pagination:
-        - Page size: 10 items per page
+        - Page size: 10 items per page (default)
         - Use page parameter to navigate pages
+        - Use page_size parameter to customize results per page
 
     create:
         Create a new user.
@@ -94,10 +104,11 @@ class UserViewSet(viewsets.ModelViewSet):
     # ---------------------------------------------------------------------------- #
     #                                main variables                                #
     # ---------------------------------------------------------------------------- #
-    queryset = CustomUser.objects.all()
     # serializer_class = UserSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     filterset_class = UserFilter
+    pagination_class = CustomPagination
+
     filter_backends = [
         DjangoFilterBackend,
         filters.OrderingFilter,
@@ -108,8 +119,9 @@ class UserViewSet(viewsets.ModelViewSet):
         "email",
         "is_active",
         "is_staff",
-        "role",
-        "country",
+        "role__name",
+        "country__name",
+        "groups__name",
         "created_at",
     ]
     search_fields = ["full_name", "email"]
@@ -118,17 +130,35 @@ class UserViewSet(viewsets.ModelViewSet):
     #                            override generic method                           #
     # ---------------------------------------------------------------------------- #
 
+    def get_queryset(self):
+        """
+        Get queryset with proper annotations for ordering by related fields
+        """
+        return CustomUser.objects.prefetch_related("role", "country", "groups").all()
+
     def get_serializer_class(self, *args, **kwargs):
         if self.action in ["activate", "deactivate"]:
             return UserActivateSerializer
+        if self.action in ["update"] or self.action in ["partial_update"]:
+            return UserUpdateSerializer
+        if self.action in ["create"]:
+            return UserCreateSerializer
         return UserSerializer
-
-    class CustomPagination(PageNumberPagination):
-        page_size_query_param = "page_size"
 
     # ---------------------------------------------------------------------------- #
     #                                   Main APIs                                  #
     # ---------------------------------------------------------------------------- #
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return APIResponse.error(
+                message="Invalid user data", status_code=status.HTTP_400_BAD_REQUEST
+            )
+        serializer.save()
+        return APIResponse.success(
+            message="User created successfully", status_code=status.HTTP_201_CREATED
+        )
 
     @list_doc
     def list(self, request, *args, **kwargs):
@@ -140,7 +170,15 @@ class UserViewSet(viewsets.ModelViewSet):
             return permission_denied_response()
 
         # Get and process users with pagination
-        return get_paginated_users(self, request=request, user_qs=self.queryset)
+        return get_paginated_users(self, request=request, user_qs=self.get_queryset())
+
+    def update(self, request, *args, **kwargs):
+        # Check if user has super admin permissions
+        user_role = request.user.role.name
+        if user_role != RoleEnum.SUPER_ADMIN.value:
+            return permission_denied_response()
+
+        return super().update(request, *args, **kwargs)
 
     # ---------------------------------------------------------------------------- #
     #                                   Profile                                #
@@ -265,6 +303,11 @@ class UserViewSet(viewsets.ModelViewSet):
             return APIResponse.error(
                 message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+# ---------------------------------------------------------------------------- #
+#                             Permissions & Groups                             #
+# ---------------------------------------------------------------------------- #
 
 
 class PermissionViewSet(viewsets.ReadOnlyModelViewSet):

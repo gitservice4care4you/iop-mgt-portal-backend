@@ -1,6 +1,8 @@
 from django.urls import path
 from country.views import CountryViewSet
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = [
-    path("countries/", CountryViewSet.as_view(), name="country-list"),
-]
+router = DefaultRouter()
+router.register(r"countries", CountryViewSet, basename="country")
+
+urlpatterns = router.urls
