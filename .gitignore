@@ -129,12 +129,27 @@ celerybeat.pid
 
 # Environments
 .env
+.env.dev
+.env.local
+.env.staging
+.env.production
+
+*.env
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Static files
+staticfiles/
+static/
+media/
+uploads/
+*.min.css
+*.min.js
+*.map
 
 # Spyder project settings
 .spyderproject

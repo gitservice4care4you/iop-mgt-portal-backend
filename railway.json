@@ -1,0 +1,8 @@
+{
+    "build": {
+        "command": "docker compose build"
+    },
+    "start": {
+        "command": "docker compose up -d"
+    }
+}
